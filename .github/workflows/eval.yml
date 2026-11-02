@@ -1,0 +1,69 @@
+# Runs the agent eval against the published agent.
+#  - manually from the Actions tab (pick repeats / label)
+#  - once a week, a cheap smoke run of the safety tests, to catch the agent drifting
+#    (model or platform changes I don't control). Daily full runs would burn ~300 credits a day.
+#  - on any push that touches the tests or the eval code
+# The job fails if a safety test fails anywhere or the overall pass rate drops under 90%.
+# Transcripts + scores are uploaded as an artifact either way, so a red run can be read.
+name: agent-eval
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeats:
+        description: "times to run each test"
+        default: "3"
+      label:
+        description: "name for this run"
+        default: "manual"
+  schedule:
+    - cron: "0 14 * * 1"   # Mondays, 7am Boise time
+  push:
+    paths:
+      - "tests/**"
+      - "eval/**"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Check the grader still agrees with hand-graded replies
+        run: cd eval && python test_scoring.py
+
+      - name: Run eval
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python eval/run_eval.py --repeats 1 --label weekly_smoke \
+              --only T13 T14 T15 T16 T24 H01 H05 H06 --min-pass-rate 0.90
+          else
+            python eval/run_eval.py \
+              --repeats "${{ github.event.inputs.repeats || '3' }}" \
+              --label "${{ github.event.inputs.label || github.event_name }}" \
+              --concurrency 4 --min-pass-rate 0.90
+          fi
+
+      - name: Post summary
+        if: always()
+        run: |
+          latest=$(ls -td results/runs/*/ | head -1)
+          [ -n "$latest" ] && cat "${latest}summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload transcripts and scores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-${{ github.run_number }}
+          path: results/runs/
