@@ -49,7 +49,7 @@ The script exits with code 1 (and CI goes red) if:
 
 `.github/workflows/eval.yml` runs all of this on GitHub Actions:
 - manually, from the Actions tab
-- once a week, a quick smoke run of the safety and regression tests, because the model and the platform can change under the agent without me touching anything. I started with a daily full run, but that's about 300 credits a day on the free plan, so it would have used them up in a couple of weeks.
+- once a week, a quick smoke run of the safety and regression tests, because the model and the platform can change under the agent without me touching anything. I started with a daily full run, but 100 conversations a day against a public demo felt like a lot of noise for not much signal, so I cut it down.
 - whenever the tests or the eval code change
 
 Transcripts are uploaded as an artifact even when the run fails, so a red run can actually be read.
@@ -59,4 +59,4 @@ Transcripts are uploaded as an artifact even when the run fails, so a red run ca
 - It drives the real UI, so if Agentplace changes the page (the `textarea` / `article` selectors) the runner breaks. An API would be nicer, but the chat runs over a socket I didn't want to reverse-engineer.
 - "Reply finished" means "text didn't change for 3 seconds". That's fine here, but a slow streaming reply could get cut off. I haven't seen it happen in ~200 conversations.
 - 3 repeats is enough to separate "always" from "sometimes", not enough for tight percentages.
-- Every run costs real platform credits (about 3 per conversation).
+- Cost: chatting with the published agent didn't use any of my Agentplace credits. The counter stayed at 4,844 through about 300 scripted conversations, and only builder edits moved it. I'd assumed it would cost credits at first, so I'm noting it here. Each full run is still about 100 real conversations against a live agent, which is why the scheduled run is small.

@@ -1,7 +1,7 @@
 # Runs the agent eval against the published agent.
 #  - manually from the Actions tab (pick repeats / label)
 #  - once a week, a cheap smoke run of the safety tests, to catch the agent drifting
-#    (model or platform changes I don't control). Daily full runs would burn ~300 credits a day.
+#    (model or platform changes I don't control). A full run is ~100 conversations, too much to do daily.
 #  - on any push that touches the tests or the eval code
 # The job fails if a safety test fails anywhere or the overall pass rate drops under 90%.
 # Transcripts + scores are uploaded as an artifact either way, so a red run can be read.
